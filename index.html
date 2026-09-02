@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Bishop Heber College – Book Entry</title>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0F2440">
+<meta name="background-color" content="#0F2440">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Book Entry">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --navy-950:#0F2440;
+  --navy-800:#1B3A5C;
+  --navy-600:#2A4D7A;
+  --navy-100:#E7EDF5;
+  --gold-600:#A88930;
+  --gold-500:#C9A84C;
+  --gold-200:#E8D48B;
+  --paper:#F6F5F1;
+  --card:#FFFFFF;
+  --ink:#1F2A37;
+  --ink-soft:#5B6672;
+  --line:#E4E1D8;
+  --ok:#1F7A4D;
+  --ok-bg:#E5F4EC;
+  --warn:#A6720A;
+  --warn-bg:#FBF1DC;
+  --danger:#B23A2E;
+  --danger-bg:#FBEAE7;
+  --radius:14px;
+  --radius-sm:9px;
+  --shadow:0 1px 2px rgba(15,36,64,.06), 0 6px 20px rgba(15,36,64,.07);
+  --shadow-lg:0 12px 40px rgba(15,36,64,.22);
+  --serif:'Source Serif 4', Georgia, serif;
+  --sans:'Inter', -apple-system, 'Segoe UI', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:96px;
+}
+h1,h2,h3{font-family:var(--serif);font-weight:600;color:var(--navy-950);}
+button{font-family:inherit;}
+input,select{font-family:inherit;}
+
+/* ===== TOP BAR ===== */
+.topbar{
+  background:linear-gradient(160deg, var(--navy-950), var(--navy-800) 55%, var(--navy-600));
+  color:#fff;
+  padding:18px 18px 22px;
+  position:sticky;top:0;z-index:60;
+  box-shadow:0 4px 18px rgba(15,36,64,.25);
+}
+.topbar-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.topbar-id{display:flex;align-items:center;gap:12px;min-width:0;}
+.crest{
+  width:42px;height:42px;border-radius:50%;
+  background:rgba(255,255,255,.12);
+  border:1.5px solid var(--gold-500);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.crest svg{width:22px;height:22px;fill:var(--gold-200);}
+.topbar-text{min-width:0;}
+.topbar-text .school{font-family:var(--serif);font-size:1.05rem;font-weight:600;color:#fff;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.topbar-text .sub{font-size:.72rem;letter-spacing:.4px;color:var(--gold-200);}
+.icon-btn{
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.25);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;transition:.2s;
+}
+.icon-btn:hover{background:rgba(255,255,255,.2);}
+.icon-btn svg{width:19px;height:19px;fill:var(--gold-200);}
+.crumb{
+  margin-top:14px;display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--gold-200);
+}
+.crumb button{background:none;border:none;color:var(--gold-200);font-weight:600;cursor:pointer;font-size:.85rem;padding:2px 4px;}
+.crumb button:hover{text-decoration:underline;}
+.crumb .sep{opacity:.5;}
+.crumb .now{color:#fff;font-weight:600;}
+
+/* ===== SCREENS ===== */
+.screen{display:none;max-width:640px;margin:0 auto;padding:18px 16px 20px;}
+.screen.active{display:block;}
+
+/* ===== EMPTY STATE ===== */
+.empty{
+  text-align:center;padding:60px 20px;color:var(--ink-soft);
+}
+.empty .glyph{
+  width:64px;height:64px;border-radius:50%;background:var(--navy-100);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
+}
+.empty .glyph svg{width:30px;height:30px;fill:var(--navy-600);}
+.empty h3{font-size:1.15rem;margin-bottom:6px;}
+.empty p{font-size:.9rem;max-width:280px;margin:0 auto;}
+
+/* ===== SESSION CARDS ===== */
+.session-list{display:flex;flex-direction:column;gap:12px;margin-top:4px;}
+.session-card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 16px 14px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;
+  padding-left:20px;
+}
+.session-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:5px;
+}
+.session-card.status-available::before{background:var(--navy-600);}
+.session-card.status-progress::before{background:var(--gold-600);}
+.session-card.status-full::before{background:var(--ok);}
+.session-card:active{transform:scale(.99);}
+.session-card:hover{box-shadow:var(--shadow-lg);}
+.sc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.sc-title{font-family:var(--serif);font-size:1.08rem;font-weight:600;color:var(--navy-950);line-height:1.3;}
+.sc-staff{font-size:.82rem;color:var(--ink-soft);margin-top:2px;}
+.sc-badge{
+  font-size:.68rem;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;letter-spacing:.3px;
+}
+.status-available .sc-badge{background:var(--navy-100);color:var(--navy-800);}
+.status-progress .sc-badge{background:var(--warn-bg);color:var(--warn);}
+.status-full .sc-badge{background:var(--ok-bg);color:var(--ok);}
+.sc-nums{display:flex;gap:18px;margin-top:14px;}
+.sc-num{display:flex;flex-direction:column;}
+.sc-num .v{font-size:1.15rem;font-weight:700;color:var(--navy-950);font-family:var(--serif);}
+.sc-num .l{font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);}
+.sc-bar-track{height:6px;background:var(--navy-100);border-radius:6px;margin-top:12px;overflow:hidden;}
+.sc-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold-600),var(--gold-500));border-radius:6px;transition:width .4s ease;}
+.sc-tap{margin-top:10px;font-size:.78rem;color:var(--navy-600);font-weight:600;display:flex;align-items:center;gap:4px;}
+.sc-tap svg{width:14px;height:14px;fill:var(--navy-600);}
+
+/* ===== FAB ===== */
+.fab{
+  position:fixed;bottom:22px;right:22px;z-index:70;
+  display:flex;align-items:center;gap:8px;
+  background:var(--navy-800);color:#fff;border:none;
+  padding:15px 22px;border-radius:50px;font-weight:600;font-size:.92rem;
+  box-shadow:0 8px 24px rgba(15,36,64,.35);cursor:pointer;
+  transition:.2s;letter-spacing:.2px;
+}
+.fab:hover{background:var(--navy-600);transform:translateY(-1px);}
+.fab svg{width:18px;height:18px;fill:var(--gold-200);}
+
+/* ===== FORM ===== */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:.78rem;font-weight:600;color:var(--navy-800);margin-bottom:6px;letter-spacing:.2px;}
+.field input,.field select{
+  width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:var(--radius-sm);
+  font-size:.95rem;color:var(--ink);background:#fff;outline:none;transition:.2s;
+}
+.field input:focus,.field select:focus{border-color:var(--navy-600);box-shadow:0 0 0 3px rgba(42,77,122,.12);}
+.field .hint{font-size:.74rem;color:var(--ink-soft);margin-top:5px;}
+.field .err{font-size:.78rem;color:var(--danger);margin-top:5px;display:none;font-weight:500;}
+.field .err.show{display:block;}
+.field-row{display:flex;gap:12px;}
+.field-row .field{flex:1;}
+
+/* ===== BUTTONS ===== */
+.btn{
+  padding:12px 20px;border-radius:50px;font-size:.9rem;font-weight:600;letter-spacing:.2px;
+  cursor:pointer;border:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:.2s;
+}
+.btn svg{width:16px;height:16px;fill:currentColor;flex-shrink:0;}
+.btn-primary{background:var(--navy-800);color:#fff;box-shadow:0 4px 14px rgba(27,58,92,.3);}
+.btn-primary:hover{background:var(--navy-600);}
+.btn-primary:disabled{background:#B7BFC8;cursor:not-allowed;box-shadow:none;}
+.btn-gold{background:var(--gold-500);color:var(--navy-950);}
+.btn-gold:hover{background:var(--gold-600);color:#fff;}
+.btn-outline{background:transparent;color:var(--ink-soft);border:1.5px solid var(--line);}
+.btn-outline:hover{border-color:var(--ink-soft);color:var(--ink);}
+.btn-danger{background:transparent;color:var(--danger);border:1.5px solid var(--danger-bg);}
+.btn-danger:hover{background:var(--danger-bg);}
+.btn-danger-solid{background:var(--danger);color:#fff;}
+.btn-danger-solid:hover{background:#8f2e24;}
+.btn-block{width:100%;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+
+/* ===== MODAL ===== */
+.overlay{
+  position:fixed;inset:0;background:rgba(15,24,36,.55);backdrop-filter:blur(3px);
+  z-index:1000;display:none;align-items:flex-end;justify-content:center;
+}
+.overlay.active{display:flex;}
+@media(min-width:560px){.overlay{align-items:center;}}
+.sheet{
+  background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;
+  padding:24px 20px 28px;max-height:92vh;overflow-y:auto;
+  animation:sheetUp .3s cubic-bezier(.4,0,.2,1);
+}
+@media(min-width:560px){.sheet{border-radius:18px;margin:20px;}}
+@keyframes sheetUp{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.sheet-handle{width:36px;height:4px;background:var(--line);border-radius:4px;margin:0 auto 16px;}
+@media(min-width:560px){.sheet-handle{display:none;}}
+.sheet-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
+.sheet-title{font-family:var(--serif);font-size:1.25rem;font-weight:600;color:var(--navy-950);}
+.sheet-sub{font-size:.85rem;color:var(--ink-soft);margin-top:2px;margin-bottom:20px;}
+.sheet-close{background:none;border:none;cursor:pointer;padding:4px;border-radius:50%;}
+.sheet-close svg{width:20px;height:20px;fill:var(--ink-soft);}
+.sheet-close:hover{background:var(--navy-100);}
+
+/* pin dots style input */
+.pin-box{
+  width:100%;padding:14px;font-size:1.3rem;letter-spacing:10px;text-align:center;font-weight:700;
+  border:1.5px solid var(--line);border-radius:var(--radius-sm);outline:none;background:var(--paper);
+}
+.pin-box:focus{border-color:var(--navy-600);box-shadow:0 0 0 3px rgba(42,77,122,.12);}
+
+/* ===== SESSION DASHBOARD ===== */
+.info-card{
+  background:linear-gradient(160deg,var(--navy-950),var(--navy-800));
+  color:#fff;border-radius:var(--radius);padding:20px 20px 18px;box-shadow:var(--shadow);margin-bottom:18px;
+}
+.info-title{font-family:var(--serif);font-size:1.25rem;font-weight:600;line-height:1.3;}
+.info-staff{font-size:.85rem;color:var(--gold-200);margin-top:3px;}
+.info-nums{display:flex;gap:22px;margin-top:18px;}
+.info-num .v{font-family:var(--serif);font-size:1.5rem;font-weight:700;}
+.info-num .l{font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.65);}
+.info-bar-track{height:8px;background:rgba(255,255,255,.15);border-radius:8px;margin-top:16px;overflow:hidden;}
+.info-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold-600),var(--gold-500));border-radius:8px;transition:width .4s ease;}
+.info-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+.chip-btn{
+  background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);
+  padding:8px 14px;border-radius:20px;font-size:.78rem;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:.2s;
+}
+.chip-btn:hover{background:rgba(255,255,255,.22);}
+.chip-btn svg{width:14px;height:14px;fill:var(--gold-200);}
+
+.section-label{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--navy-800);margin:22px 0 10px;}
+
+.limit-note{
+  display:flex;align-items:center;gap:8px;background:var(--danger-bg);color:var(--danger);
+  padding:12px 14px;border-radius:var(--radius-sm);font-size:.85rem;font-weight:600;margin-top:10px;margin-bottom:6px;
+}
+.limit-note svg{width:18px;height:18px;fill:var(--danger);flex-shrink:0;}
+
+/* ===== Roll-number checkbox table (existing tick-based student entry UI) ===== */
+.roll-search-wrapper{position:relative;margin-bottom:14px;}
+.roll-search-wrapper svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:18px;height:18px;fill:var(--ink-soft);pointer-events:none;}
+.roll-search-input{
+  width:100%;padding:12px 14px 12px 42px;font-size:.92rem;border:1.5px solid var(--line);
+  border-radius:50px;outline:none;background:#fff;color:var(--ink);transition:.2s;
+}
+.roll-search-input:focus{border-color:var(--navy-600);box-shadow:0 0 0 3px rgba(42,77,122,.12);}
+
+.roll-table-section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.roll-table-scroll{max-height:520px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.roll-table{width:100%;border-collapse:collapse;font-size:.92rem;}
+.roll-table thead th{
+  position:sticky;top:0;z-index:5;background:var(--navy-800);color:#fff;font-weight:600;
+  text-align:left;padding:11px 14px;font-size:.72rem;text-transform:uppercase;letter-spacing:.4px;
+  border-bottom:2px solid var(--gold-500);white-space:nowrap;
+}
+.roll-table thead th:first-child{width:56px;text-align:center;}
+.roll-table thead th:last-child{width:34%;text-align:center;}
+.roll-table tbody tr{border-bottom:1px solid var(--line);}
+.roll-table tbody tr:nth-child(even){background:#FAFAF7;}
+.roll-table tbody td{padding:9px 14px;vertical-align:middle;}
+.td-sno{text-align:center;font-weight:600;color:var(--ink-soft);font-size:.82rem;}
+.td-roll{font-weight:700;color:var(--navy-800);font-family:'Courier New',monospace;letter-spacing:.3px;white-space:nowrap;}
+.td-checkbox{text-align:center;}
+
+.checkbox-container{display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;-webkit-user-select:none;user-select:none;}
+.checkbox-container input[type="checkbox"]{display:none;}
+.custom-checkbox{
+  width:28px;height:28px;border-radius:7px;border:2.25px solid #C0C8D0;display:flex;align-items:center;
+  justify-content:center;transition:.2s;flex-shrink:0;background:#fff;
+}
+.custom-checkbox svg{width:16px;height:16px;fill:#fff;opacity:0;transform:scale(.5);transition:.2s;}
+.checkbox-container input[type="checkbox"]:checked+.custom-checkbox{background:var(--ok);border-color:var(--ok);}
+.checkbox-container input[type="checkbox"]:checked+.custom-checkbox svg{opacity:1;transform:scale(1);}
+.checkbox-container input[type="checkbox"]:disabled+.custom-checkbox{opacity:.45;cursor:not-allowed;}
+.checkbox-label{font-size:.78rem;font-weight:500;color:var(--ink-soft);}
+.checkbox-container input[type="checkbox"]:checked~.checkbox-label{color:var(--ok);font-weight:600;}
+
+/* ===== SETTINGS ===== */
+.settings-item{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
+}
+.settings-item .t{font-size:.92rem;font-weight:600;color:var(--ink);}
+.settings-item .d{font-size:.78rem;color:var(--ink-soft);margin-top:1px;}
+
+/* ===== TOAST ===== */
+.toast-wrap{position:fixed;bottom:90px;left:16px;right:16px;z-index:2000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}
+.toast{
+  background:var(--navy-950);color:#fff;padding:12px 18px;border-radius:10px;font-size:.85rem;font-weight:500;
+  box-shadow:var(--shadow-lg);max-width:420px;width:100%;text-align:center;
+  animation:toastIn .3s ease, toastOut .3s ease 2.4s forwards;
+}
+.toast.success{border-left:4px solid var(--ok);}
+.toast.error{border-left:4px solid var(--danger);}
+.toast.info{border-left:4px solid var(--gold-500);}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes toastOut{from{opacity:1;}to{opacity:0;transform:translateY(-6px);}}
+
+/* misc */
+.loading-row{text-align:center;padding:30px;color:var(--ink-soft);font-size:.88rem;}
+.divider{height:1px;background:var(--line);margin:18px 0;}
+.muted{color:var(--ink-soft);font-size:.82rem;}
+</style>
+</head>
+<body>
+
+<!-- ===== TOP BAR ===== -->
+<header class="topbar">
+  <div class="topbar-row">
+    <div class="topbar-id">
+      <div class="crest">
+        <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+      </div>
+      <div class="topbar-text">
+        <div class="school">Bishop Heber College</div>
+        <div class="sub">BOOK ENTRY</div>
+      </div>
+    </div>
+    <button class="icon-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
+    </button>
+  </div>
+  <div class="crumb" id="crumbBar">
+    <span class="now">Dashboard</span>
+  </div>
+</header>
+
+<!-- ===== DASHBOARD SCREEN ===== -->
+<section class="screen active" id="screen-dashboard">
+  <div id="dashboardBody">
+    <div class="loading-row">Loading book entry sessions…</div>
+  </div>
+</section>
+
+<!-- ===== SESSION SCREEN ===== -->
+<section class="screen" id="screen-session">
+  <div id="sessionBody"></div>
+</section>
+
+<!-- ===== SETTINGS SCREEN ===== -->
+<section class="screen" id="screen-settings">
+  <h2 style="margin-bottom:14px;">Settings</h2>
+  <div class="section-label" id="installSectionLabel" style="display:none;">App</div>
+  <div class="settings-item" id="installRow" style="display:none;">
+    <div>
+      <div class="t">Install App</div>
+      <div class="d">Add Book Entry to your home screen for one-tap access</div>
+    </div>
+    <button class="btn btn-primary" id="installBtn" style="padding:8px 14px;font-size:.8rem;">Install</button>
+  </div>
+  <div class="section-label">Security</div>
+  <div class="settings-item">
+    <div>
+      <div class="t">Admin PIN</div>
+      <div class="d">Required for Excel export and settings access</div>
+    </div>
+    <button class="btn btn-outline" id="changePinBtn" style="padding:8px 14px;font-size:.8rem;">Change</button>
+  </div>
+  <div class="section-label">Book Entry Sessions</div>
+  <div id="settingsSessionList"></div>
+</section>
+
+<button class="fab" id="addBtn" aria-label="Add Book Session">
+  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg>
+  Add
+</button>
+
+<!-- ===== ADD / EDIT SESSION SHEET ===== -->
+<div class="overlay" id="sessionFormOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title" id="sessionFormTitle">New Book Session</div>
+        <div class="sheet-sub" id="sessionFormSub">Set up a new book distribution session.</div>
+      </div>
+      <button class="sheet-close" id="sessionFormClose"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <form id="sessionForm">
+      <div class="field">
+        <label for="fBookTitle">Book Title</label>
+        <input type="text" id="fBookTitle" placeholder="e.g. Entrepreneurship – Internal Exam" autocomplete="off">
+        <div class="err" id="errBookTitle">Book title is required.</div>
+      </div>
+      <div class="field">
+        <label for="fStaffName">Staff Name</label>
+        <input type="text" id="fStaffName" placeholder="e.g. Dr. Kumar" autocomplete="off">
+        <div class="err" id="errStaffName">Staff name is required.</div>
+      </div>
+      <div class="field">
+        <label for="fTotalBooks">Number of Books</label>
+        <input type="number" id="fTotalBooks" min="1" step="1" placeholder="e.g. 20">
+        <div class="hint" id="hintTotalBooks">This is the maximum number of students who can receive a book.</div>
+        <div class="err" id="errTotalBooks">Enter a valid positive number.</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="fPassword" id="labelPassword">Set Password</label>
+          <input type="password" id="fPassword" placeholder="••••••" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="fPasswordConfirm">Confirm Password</label>
+          <input type="password" id="fPasswordConfirm" placeholder="••••••" autocomplete="new-password">
+        </div>
+      </div>
+      <div class="err" id="errPassword" style="margin-top:-8px;margin-bottom:14px;">Passwords do not match, or are required.</div>
+      <div class="btn-row">
+        <button type="submit" class="btn btn-primary btn-block" id="sessionFormSubmit">Save Book Session</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== PASSWORD UNLOCK SHEET ===== -->
+<div class="overlay" id="unlockOverlay">
+  <div class="sheet" style="max-width:400px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title">Enter Password</div>
+        <div class="sheet-sub" id="unlockSub">Unlock this book entry session.</div>
+      </div>
+      <button class="sheet-close" id="unlockClose"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <div class="field">
+      <input type="password" class="pin-box" id="unlockInput" placeholder="••••••" maxlength="24" autocomplete="off">
+      <div class="err" id="unlockErr">Incorrect password. Please try again.</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary btn-block" id="unlockSubmit">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADMIN PIN SHEET (excel / settings) ===== -->
+<div class="overlay" id="pinOverlay">
+  <div class="sheet" style="max-width:400px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title">Admin PIN</div>
+        <div class="sheet-sub" id="pinSub">Enter the admin PIN to continue.</div>
+      </div>
+      <button class="sheet-close" id="pinClose"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <div class="field">
+      <input type="password" class="pin-box" id="pinInput" placeholder="••••" maxlength="8" inputmode="numeric" autocomplete="off">
+      <div class="err" id="pinErr">Incorrect PIN. Please try again.</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary btn-block" id="pinSubmit">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CHANGE ADMIN PIN SHEET ===== -->
+<div class="overlay" id="changePinOverlay">
+  <div class="sheet" style="max-width:420px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title">Change Admin PIN</div>
+        <div class="sheet-sub">Verify the current PIN, then set a new one.</div>
+      </div>
+      <button class="sheet-close" id="changePinClose"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    </div>
+    <div class="field">
+      <label>Current PIN</label>
+      <input type="password" class="pin-box" id="curPinInput" maxlength="8" inputmode="numeric" style="letter-spacing:6px;font-size:1.05rem;">
+    </div>
+    <div class="field">
+      <label>New PIN</label>
+      <input type="password" class="pin-box" id="newPinInput" maxlength="8" inputmode="numeric" style="letter-spacing:6px;font-size:1.05rem;">
+    </div>
+    <div class="err" id="changePinErr">Please check the values above.</div>
+    <div class="btn-row">
+      <button class="btn btn-primary btn-block" id="changePinSubmit">Update PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONFIRM DELETE SHEET ===== -->
+<div class="overlay" id="confirmOverlay">
+  <div class="sheet" style="max-width:420px;">
+    <div class="sheet-head">
+      <div>
+        <div class="sheet-title" id="confirmTitle">Are you sure?</div>
+        <div class="sheet-sub" id="confirmSub">This action cannot be undone.</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-danger-solid" id="confirmOk">Delete</button>
+      <button class="btn btn-outline" id="confirmCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, addDoc, getDoc, getDocs, onSnapshot,
+  query, orderBy, runTransaction, serverTimestamp, writeBatch, setDoc
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCjYfBe_i4iPP-0utZksbYfRX-vBigj4gI",
+  authDomain: "my-timetable-c4c7e.firebaseapp.com",
+  databaseURL: "https://my-timetable-c4c7e-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "my-timetable-c4c7e",
+  storageBucket: "my-timetable-c4c7e.firebasestorage.app",
+  messagingSenderId: "928864422682",
+  appId: "1:928864422682:web:8de2ddbe4b799d42973aa3",
+  measurementId: "G-5N3BXDY5RH"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ============================================================
+   EXISTING ROLL-NUMBER RANGE (preserved from prior project)
+   ============================================================ */
+const ROLL_NUMBERS = [
+  255105601, 255105603, 255105604, 255105605, 255105606,
+  255105608, 255105609, 255105610, 255105611, 255105612,
+  255105613, 255105614, 255105615, 255105617, 255105618,
+  255105619, 255105622, 255105623, 255105624, 255105625,
+  255105626, 255105627, 255105628, 255105629, 255105630,
+  255105631, 255105633, 255105634, 255105635, 255105636,
+  255105637, 255105638, 255105639, 255105640, 255105642,
+  255105643, 255105644, 255105645, 255105646, 255105647,
+  255105648, 255105649, 255105650, 255105651, 255105652,
+  255105654, 255105655, 255105657, 255105658, 255105661,
+  255105662, 255105664, 255105665, 255105666, 255105667,
+  255105669, 255105670, 255105671, 255105672, 255105673,
+  255105675, 255105676, 255105677, 255105678, 255105679,
+  255105680, 255105681
+];
+
+const DEFAULT_ADMIN_PIN = '2112';
+
+/* ============================================================
+   HASHING (client-side SHA-256 — see note to team below)
+   ============================================================ */
+async function sha256(text) {
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let sessionsCache = {};       // id -> session data
+let unlockedSessions = {};    // in-memory only, resets on reload
+let currentSessionId = null;
+let currentEntries = [];
+let entriesUnsub = null;
+let adminPinHash = null;
+let pendingAction = null;     // 'excel' | 'settings'
+let pendingDeleteFn = null;
+
+/* ============================================================
+   DOM HELPERS
+   ============================================================ */
+const $ = (id) => document.getElementById(id);
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-' + name).classList.add('active');
+}
+
+function setCrumb(parts) {
+  // parts: [{label, onClick?}]
+  const bar = $('crumbBar');
+  bar.innerHTML = '';
+  parts.forEach((p, i) => {
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'sep';
+      sep.textContent = '›';
+      bar.appendChild(sep);
+    }
+    if (p.onClick) {
+      const btn = document.createElement('button');
+      btn.textContent = p.label;
+      btn.addEventListener('click', p.onClick);
+      bar.appendChild(btn);
+    } else {
+      const span = document.createElement('span');
+      span.className = 'now';
+      span.textContent = p.label;
+      bar.appendChild(span);
+    }
+  });
+}
+
+function openSheet(id) { $(id).classList.add('active'); }
+function closeSheet(id) { $(id).classList.remove('active'); }
+
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  $('toastWrap').appendChild(toast);
+  setTimeout(() => toast.remove(), 2700);
+}
+
+function fmtDateTime(ts) {
+  if (!ts) return '—';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString() + ' · ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+/* ============================================================
+   ADMIN PIN (bootstrap in Firestore, reuse across app)
+   ============================================================ */
+async function ensureAdminPin() {
+  const ref = doc(db, 'appSettings', 'global');
+  const snap = await getDoc(ref);
+  if (snap.exists() && snap.data().adminPinHash) {
+    adminPinHash = snap.data().adminPinHash;
+  } else {
+    adminPinHash = await sha256(DEFAULT_ADMIN_PIN);
+    await setDoc(ref, { adminPinHash, updatedAt: serverTimestamp() }, { merge: true });
+  }
+}
+
+/* ============================================================
+   DASHBOARD — realtime session list
+   ============================================================ */
+function listenDashboard() {
+  const q = query(collection(db, 'bookSessions'), orderBy('createdAt', 'desc'));
+  onSnapshot(q, (snap) => {
+    sessionsCache = {};
+    snap.forEach(d => sessionsCache[d.id] = d.data());
+    renderDashboard();
+    renderSettingsList();
+  }, (err) => {
+    console.error(err);
+    $('dashboardBody').innerHTML = `<div class="loading-row">Could not load sessions. Check your connection.</div>`;
+  });
+}
+
+function statusClass(distributed, total) {
+  if (total > 0 && distributed >= total) return 'status-full';
+  if (distributed > 0) return 'status-progress';
+  return 'status-available';
+}
+function statusLabel(distributed, total) {
+  if (total > 0 && distributed >= total) return 'Fully Distributed';
+  if (distributed > 0) return 'In Progress';
+  return 'Available';
+}
+
+function renderDashboard() {
+  const ids = Object.keys(sessionsCache);
+  const body = $('dashboardBody');
+  if (ids.length === 0) {
+    body.innerHTML = `
+      <div class="empty">
+        <div class="glyph"><svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg></div>
+        <h3>No Book Entry Sessions Yet</h3>
+        <p>Tap "+ Add" to create your first book distribution session.</p>
+      </div>`;
+    return;
+  }
+  let html = '<div class="session-list">';
+  ids.forEach(id => {
+    const s = sessionsCache[id];
+    const distributed = s.distributedCount || 0;
+    const total = s.totalBooks || 0;
+    const remaining = Math.max(0, total - distributed);
+    const pct = total > 0 ? Math.min(100, (distributed / total) * 100) : 0;
+    const cls = statusClass(distributed, total);
+    html += `
+      <div class="session-card ${cls}" data-id="${id}">
+        <div class="sc-top">
+          <div>
+            <div class="sc-title">${escapeHtml(s.bookTitle || 'Untitled')}</div>
+            <div class="sc-staff">Staff: ${escapeHtml(s.staffName || '—')}</div>
+          </div>
+          <span class="sc-badge">${statusLabel(distributed, total)}</span>
+        </div>
+        <div class="sc-nums">
+          <div class="sc-num"><span class="v">${total}</span><span class="l">Books</span></div>
+          <div class="sc-num"><span class="v">${distributed}</span><span class="l">Distributed</span></div>
+          <div class="sc-num"><span class="v">${remaining}</span><span class="l">Remaining</span></div>
+        </div>
+        <div class="sc-bar-track"><div class="sc-bar-fill" style="width:${pct}%;"></div></div>
+        <div class="sc-tap">Tap to open <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+      </div>`;
+  });
+  html += '</div>';
+  body.innerHTML = html;
+
+  body.querySelectorAll('.session-card').forEach(card => {
+    card.addEventListener('click', () => onSessionCardClick(card.dataset.id));
+  });
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str == null ? '' : String(str);
+  return d.innerHTML;
+}
+
+/* ============================================================
+   ADD / EDIT SESSION FORM
+   ============================================================ */
+let editingSessionId = null;
+
+function openAddForm() {
+  editingSessionId = null;
+  $('sessionFormTitle').textContent = 'New Book Session';
+  $('sessionFormSub').textContent = 'Set up a new book distribution session.';
+  $('sessionFormSubmit').textContent = 'Save Book Session';
+  $('labelPassword').textContent = 'Set Password';
+  $('fBookTitle').value = '';
+  $('fStaffName').value = '';
+  $('fTotalBooks').value = '';
+  $('fPassword').value = '';
+  $('fPasswordConfirm').value = '';
+  $('hintTotalBooks').textContent = 'This is the maximum number of students who can receive a book.';
+  clearFormErrors();
+  openSheet('sessionFormOverlay');
+}
+
+function openEditForm(id) {
+  const s = sessionsCache[id];
+  if (!s) return;
+  editingSessionId = id;
+  $('sessionFormTitle').textContent = 'Edit Book Session';
+  $('sessionFormSub').textContent = 'Update session details. Leave password blank to keep it unchanged.';
+  $('sessionFormSubmit').textContent = 'Save Changes';
+  $('labelPassword').textContent = 'New Password (optional)';
+  $('fBookTitle').value = s.bookTitle || '';
+  $('fStaffName').value = s.staffName || '';
+  $('fTotalBooks').value = s.totalBooks || '';
+  $('fPassword').value = '';
+  $('fPasswordConfirm').value = '';
+  const distributed = s.distributedCount || 0;
+  $('hintTotalBooks').textContent = `Cannot be reduced below ${distributed} (already distributed).`;
+  clearFormErrors();
+  openSheet('sessionFormOverlay');
+}
+
+function clearFormErrors() {
+  ['errBookTitle', 'errStaffName', 'errTotalBooks', 'errPassword'].forEach(id => $(id).classList.remove('show'));
+}
+
+$('addBtn').addEventListener('click', openAddForm);
+$('sessionFormClose').addEventListener('click', () => closeSheet('sessionFormOverlay'));
+$('sessionFormOverlay').addEventListener('click', (e) => { if (e.target.id === 'sessionFormOverlay') closeSheet('sessionFormOverlay'); });
+
+$('sessionForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearFormErrors();
+
+  const bookTitle = $('fBookTitle').value.trim();
+  const staffName = $('fStaffName').value.trim();
+  const totalBooksRaw = $('fTotalBooks').value.trim();
+  const totalBooks = parseInt(totalBooksRaw, 10);
+  const password = $('fPassword').value;
+  const passwordConfirm = $('fPasswordConfirm').value;
+
+  let valid = true;
+  if (!bookTitle) { $('errBookTitle').classList.add('show'); valid = false; }
+  if (!staffName) { $('errStaffName').classList.add('show'); valid = false; }
+  if (!totalBooksRaw || !Number.isInteger(totalBooks) || totalBooks < 1) {
+    $('errTotalBooks').classList.add('show'); valid = false;
+  }
+
+  const isNewSession = !editingSessionId;
+  if (isNewSession) {
+    if (!password || password.length < 4 || password !== passwordConfirm) {
+      $('errPassword').textContent = !password ? 'Password is required (min 4 characters).' : 'Passwords do not match.';
+      $('errPassword').classList.add('show');
+      valid = false;
+    }
+  } else if (password || passwordConfirm) {
+    if (password.length < 4 || password !== passwordConfirm) {
+      $('errPassword').textContent = 'New password must be at least 4 characters and match confirmation.';
+      $('errPassword').classList.add('show');
+      valid = false;
+    }
+  }
+
+  if (!valid) return;
+
+  const submitBtn = $('sessionFormSubmit');
+  submitBtn.disabled = true;
+
+  try {
+    if (isNewSession) {
+      const passwordHash = await sha256(password);
+      await addDoc(collection(db, 'bookSessions'), {
+        bookTitle, staffName, totalBooks,
+        distributedCount: 0,
+        passwordHash,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      showToast('✓ Book session created', 'success');
+      closeSheet('sessionFormOverlay');
+    } else {
+      const sessionRef = doc(db, 'bookSessions', editingSessionId);
+      let newPasswordHash = null;
+      if (password) newPasswordHash = await sha256(password);
+
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(sessionRef);
+        if (!snap.exists()) throw new Error('This session no longer exists.');
+        const distributed = snap.data().distributedCount || 0;
+        if (totalBooks < distributed) {
+          throw new Error(`Number of books cannot be less than ${distributed} (already distributed).`);
+        }
+        const updates = { bookTitle, staffName, totalBooks, updatedAt: serverTimestamp() };
+        if (newPasswordHash) updates.passwordHash = newPasswordHash;
+        tx.update(sessionRef, updates);
+      });
+
+      showToast('✓ Session updated', 'success');
+      closeSheet('sessionFormOverlay');
+      if (currentSessionId === editingSessionId) renderSessionInfo();
+    }
+  } catch (err) {
+    console.error(err);
+    $('errTotalBooks').textContent = err.message || 'Something went wrong. Please try again.';
+    $('errTotalBooks').classList.add('show');
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+/* ============================================================
+   SESSION UNLOCK (password)
+   ============================================================ */
+let pendingSessionId = null;
+
+function onSessionCardClick(id) {
+  if (unlockedSessions[id]) {
+    openSession(id);
+    return;
+  }
+  pendingSessionId = id;
+  const s = sessionsCache[id];
+  $('unlockSub').textContent = `Unlock “${s.bookTitle}” to continue.`;
+  $('unlockInput').value = '';
+  $('unlockErr').classList.remove('show');
+  openSheet('unlockOverlay');
+  setTimeout(() => $('unlockInput').focus(), 150);
+}
+
+$('unlockClose').addEventListener('click', () => closeSheet('unlockOverlay'));
+$('unlockOverlay').addEventListener('click', (e) => { if (e.target.id === 'unlockOverlay') closeSheet('unlockOverlay'); });
+
+async function verifyUnlock() {
+  const s = sessionsCache[pendingSessionId];
+  if (!s) return;
+  const entered = $('unlockInput').value;
+  const hash = await sha256(entered);
+  if (hash === s.passwordHash) {
+    unlockedSessions[pendingSessionId] = true;
+    closeSheet('unlockOverlay');
+    openSession(pendingSessionId);
+  } else {
+    $('unlockErr').classList.add('show');
+    $('unlockInput').value = '';
+    $('unlockInput').focus();
+  }
+}
+$('unlockSubmit').addEventListener('click', verifyUnlock);
+$('unlockInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); verifyUnlock(); } });
+
+/* ============================================================
+   SESSION DASHBOARD (inside an unlocked session)
+   ============================================================ */
+function openSession(id) {
+  currentSessionId = id;
+  showScreen('session');
+  const s = sessionsCache[id];
+  setCrumb([
+    { label: 'Dashboard', onClick: goToDashboard },
+    { label: s.bookTitle || 'Session' }
+  ]);
+  renderSessionInfo();
+  listenEntries(id);
+}
+
+function goToDashboard() {
+  currentSessionId = null;
+  if (entriesUnsub) { entriesUnsub(); entriesUnsub = null; }
+  setCrumb([{ label: 'Dashboard' }]);
+  showScreen('dashboard');
+}
+
+function renderSessionInfo() {
+  const s = sessionsCache[currentSessionId];
+  if (!s) return;
+  const distributed = s.distributedCount || 0;
+  const total = s.totalBooks || 0;
+  const remaining = Math.max(0, total - distributed);
+  const pct = total > 0 ? Math.min(100, (distributed / total) * 100) : 0;
+
+  const infoHtml = `
+    <div class="info-card">
+      <div class="info-title">${escapeHtml(s.bookTitle)}</div>
+      <div class="info-staff">Staff: ${escapeHtml(s.staffName)}</div>
+      <div class="info-nums">
+        <div class="info-num"><span class="v">${total}</span><span class="l">Total Books</span></div>
+        <div class="info-num"><span class="v">${distributed}</span><span class="l">Distributed</span></div>
+        <div class="info-num"><span class="v">${remaining}</span><span class="l">Remaining</span></div>
+      </div>
+      <div class="info-bar-track"><div class="info-bar-fill" style="width:${pct}%;"></div></div>
+      <div class="info-actions">
+        <button class="chip-btn" id="editSessionBtn"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75z"/></svg>Edit</button>
+        <button class="chip-btn" id="excelBtn"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>Download Excel</button>
+        <button class="chip-btn" id="deleteSessionBtn"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>Delete</button>
+      </div>
+    </div>
+
+    ${remaining === 0 ? `
+      <div class="limit-note">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        All ${total} books have been distributed.
+      </div>
+    ` : ''}
+
+    <div class="section-label">Student Entry</div>
+    <div class="roll-search-wrapper">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <input type="text" id="rollSearchInput" class="roll-search-input" placeholder="Search by roll number..." autocomplete="off">
+    </div>
+    <div class="roll-table-section">
+      <div class="roll-table-scroll">
+        <table class="roll-table">
+          <thead>
+            <tr>
+              <th>S.No</th>
+              <th>Roll Number</th>
+              <th>Book Received</th>
+            </tr>
+          </thead>
+          <tbody id="rollTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  $('sessionBody').innerHTML = infoHtml;
+
+  $('editSessionBtn').addEventListener('click', () => openEditForm(currentSessionId));
+  $('deleteSessionBtn').addEventListener('click', () => confirmDeleteSession(currentSessionId));
+  $('excelBtn').addEventListener('click', () => requestAdminPin('excel'));
+
+  renderRollTable();
+  initRollSearch();
+}
+
+function initRollSearch() {
+  const input = $('rollSearchInput');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    document.querySelectorAll('#rollTableBody tr').forEach(tr => {
+      tr.style.display = tr.dataset.roll.includes(q) ? '' : 'none';
+    });
+  });
+}
+
+/* ============================================================
+   ROLL-NUMBER CHECKBOX TABLE (existing tick-based selection UI)
+   ============================================================ */
+function renderRollTable() {
+  const tbody = $('rollTableBody');
+  if (!tbody) return;
+  const s = sessionsCache[currentSessionId];
+  if (!s) return;
+  const total = s.totalBooks || 0;
+  const distributed = s.distributedCount || 0;
+  const limitReached = distributed >= total;
+  const checkedSet = new Set(currentEntries.map(e => String(e.rollNumber)));
+
+  tbody.innerHTML = ROLL_NUMBERS.map((rn, idx) => {
+    const rollStr = String(rn);
+    const isChecked = checkedSet.has(rollStr);
+    const disableUnchecked = limitReached && !isChecked;
+    return `
+      <tr data-roll="${rollStr}">
+        <td class="td-sno">${idx + 1}</td>
+        <td class="td-roll">${rollStr}</td>
+        <td class="td-checkbox">
+          <label class="checkbox-container">
+            <input type="checkbox" class="book-checkbox" data-roll="${rollStr}" ${isChecked ? 'checked' : ''} ${disableUnchecked ? 'disabled' : ''}>
+            <span class="custom-checkbox">
+              <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </span>
+            <span class="checkbox-label">${isChecked ? 'Received' : 'Not Received'}</span>
+          </label>
+        </td>
+      </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.book-checkbox').forEach(cb => {
+    cb.addEventListener('change', handleRollCheckboxChange);
+  });
+}
+
+async function handleRollCheckboxChange(e) {
+  const checkbox = e.target;
+  const roll = checkbox.dataset.roll;
+  const wantsChecked = checkbox.checked;
+  checkbox.disabled = true;
+
+  try {
+    if (wantsChecked) {
+      await addEntryTx(currentSessionId, roll, '', '');
+      showToast(`✓ Book received for ${roll}`, 'success');
+    } else {
+      await deleteEntryTx(currentSessionId, roll);
+      showToast(`Book entry removed for ${roll}`, 'info');
+    }
+  } catch (err) {
+    checkbox.checked = !wantsChecked;
+    showToast(err.message || 'Could not update entry.', 'error');
+    checkbox.disabled = false;
+  }
+}
+
+async function addEntryTx(sessionId, rollNumber, studentName, className) {
+  const sessionRef = doc(db, 'bookSessions', sessionId);
+  const entryRef = doc(db, 'bookSessions', sessionId, 'entries', String(rollNumber));
+  await runTransaction(db, async (tx) => {
+    const sessionSnap = await tx.get(sessionRef);
+    if (!sessionSnap.exists()) throw new Error('Session not found.');
+    const sd = sessionSnap.data();
+    const entrySnap = await tx.get(entryRef);
+    if (entrySnap.exists()) throw new Error('This roll number has already received a book in this session.');
+    const distributed = sd.distributedCount || 0;
+    const total = sd.totalBooks || 0;
+    if (distributed >= total) throw new Error(`All ${total} books have been distributed.`);
+    tx.set(entryRef, {
+      rollNumber: String(rollNumber),
+      studentName: studentName || '',
+      className: className || '',
+      bookTitle: sd.bookTitle,
+      staffName: sd.staffName,
+      timestamp: serverTimestamp()
+    });
+    tx.update(sessionRef, { distributedCount: distributed + 1, updatedAt: serverTimestamp() });
+  });
+}
+
+async function deleteEntryTx(sessionId, rollNumber) {
+  const sessionRef = doc(db, 'bookSessions', sessionId);
+  const entryRef = doc(db, 'bookSessions', sessionId, 'entries', String(rollNumber));
+  await runTransaction(db, async (tx) => {
+    const sessionSnap = await tx.get(sessionRef);
+    if (!sessionSnap.exists()) throw new Error('Session not found.');
+    const entrySnap = await tx.get(entryRef);
+    if (!entrySnap.exists()) throw new Error('Entry not found.');
+    const distributed = sessionSnap.data().distributedCount || 0;
+    tx.delete(entryRef);
+    tx.update(sessionRef, { distributedCount: Math.max(0, distributed - 1), updatedAt: serverTimestamp() });
+  });
+}
+
+function listenEntries(sessionId) {
+  if (entriesUnsub) entriesUnsub();
+  const q = query(collection(db, 'bookSessions', sessionId, 'entries'), orderBy('timestamp', 'desc'));
+  entriesUnsub = onSnapshot(q, (snap) => {
+    currentEntries = [];
+    snap.forEach(d => currentEntries.push({ id: d.id, ...d.data() }));
+    renderRollTable();
+  }, (err) => console.error(err));
+}
+
+/* ============================================================
+   DELETE SESSION
+   ============================================================ */
+function confirmDeleteSession(id) {
+  const s = sessionsCache[id];
+  openConfirm(
+    'Delete this Book Entry session?',
+    `All student entries associated with “${s.bookTitle}” will also be deleted. This action cannot be undone.`,
+    async () => {
+      try {
+        await deleteSessionFully(id);
+        delete unlockedSessions[id];
+        showToast('✓ Session deleted', 'success');
+        if (currentSessionId === id) goToDashboard();
+      } catch (err) {
+        showToast(err.message || 'Could not delete session.', 'error');
+      }
+    }
+  );
+}
+
+async function deleteSessionFully(id) {
+  const entriesSnap = await getDocs(collection(db, 'bookSessions', id, 'entries'));
+  const batch = writeBatch(db);
+  entriesSnap.forEach(d => batch.delete(d.ref));
+  batch.delete(doc(db, 'bookSessions', id));
+  await batch.commit();
+}
+
+/* ============================================================
+   CONFIRM DIALOG (generic)
+   ============================================================ */
+function openConfirm(title, sub, onOk) {
+  $('confirmTitle').textContent = title;
+  $('confirmSub').textContent = sub;
+  pendingDeleteFn = onOk;
+  openSheet('confirmOverlay');
+}
+$('confirmCancel').addEventListener('click', () => closeSheet('confirmOverlay'));
+$('confirmOk').addEventListener('click', async () => {
+  closeSheet('confirmOverlay');
+  if (pendingDeleteFn) await pendingDeleteFn();
+  pendingDeleteFn = null;
+});
+
+/* ============================================================
+   ADMIN PIN GATE (excel export / settings)
+   ============================================================ */
+function requestAdminPin(action) {
+  pendingAction = action;
+  $('pinSub').textContent = action === 'excel'
+    ? 'Enter the admin PIN to export this session as Excel.'
+    : 'Enter the admin PIN to access settings.';
+  $('pinInput').value = '';
+  $('pinErr').classList.remove('show');
+  openSheet('pinOverlay');
+  setTimeout(() => $('pinInput').focus(), 150);
+}
+$('pinClose').addEventListener('click', () => closeSheet('pinOverlay'));
+$('pinOverlay').addEventListener('click', (e) => { if (e.target.id === 'pinOverlay') closeSheet('pinOverlay'); });
+
+async function verifyAdminPin() {
+  const entered = $('pinInput').value.trim();
+  const hash = await sha256(entered);
+  if (hash === adminPinHash) {
+    closeSheet('pinOverlay');
+    if (pendingAction === 'excel') {
+      downloadExcel();
+    } else if (pendingAction === 'settings') {
+      showScreen('settings');
+      setCrumb([{ label: 'Dashboard', onClick: goToDashboard }, { label: 'Settings' }]);
+      renderSettingsList();
+    }
+  } else {
+    $('pinErr').classList.add('show');
+    $('pinInput').value = '';
+    $('pinInput').focus();
+  }
+}
+$('pinSubmit').addEventListener('click', verifyAdminPin);
+$('pinInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); verifyAdminPin(); } });
+
+$('settingsBtn').addEventListener('click', () => requestAdminPin('settings'));
+
+/* ============================================================
+   CHANGE ADMIN PIN
+   ============================================================ */
+$('changePinBtn').addEventListener('click', () => {
+  $('curPinInput').value = '';
+  $('newPinInput').value = '';
+  $('changePinErr').classList.remove('show');
+  openSheet('changePinOverlay');
+});
+$('changePinClose').addEventListener('click', () => closeSheet('changePinOverlay'));
+$('changePinOverlay').addEventListener('click', (e) => { if (e.target.id === 'changePinOverlay') closeSheet('changePinOverlay'); });
+
+$('changePinSubmit').addEventListener('click', async () => {
+  const cur = $('curPinInput').value.trim();
+  const next = $('newPinInput').value.trim();
+  const errEl = $('changePinErr');
+  errEl.classList.remove('show');
+
+  const curHash = await sha256(cur);
+  if (curHash !== adminPinHash) {
+    errEl.textContent = 'Current PIN is incorrect.';
+    errEl.classList.add('show');
+    return;
+  }
+  if (!next || next.length < 4) {
+    errEl.textContent = 'New PIN must be at least 4 characters.';
+    errEl.classList.add('show');
+    return;
+  }
+  try {
+    const newHash = await sha256(next);
+    await setDoc(doc(db, 'appSettings', 'global'), { adminPinHash: newHash, updatedAt: serverTimestamp() }, { merge: true });
+    adminPinHash = newHash;
+    closeSheet('changePinOverlay');
+    showToast('✓ Admin PIN updated', 'success');
+  } catch (err) {
+    errEl.textContent = 'Could not update PIN. Please try again.';
+    errEl.classList.add('show');
+  }
+});
+
+/* ============================================================
+   SETTINGS — session list mirror
+   ============================================================ */
+function renderSettingsList() {
+  const el = $('settingsSessionList');
+  if (!el) return;
+  const ids = Object.keys(sessionsCache);
+  if (ids.length === 0) {
+    el.innerHTML = `<div class="muted">No sessions created yet.</div>`;
+    return;
+  }
+  el.innerHTML = ids.map(id => {
+    const s = sessionsCache[id];
+    const distributed = s.distributedCount || 0;
+    const total = s.totalBooks || 0;
+    return `
+      <div class="settings-item">
+        <div>
+          <div class="t">${escapeHtml(s.bookTitle)}</div>
+          <div class="d">${escapeHtml(s.staffName)} · ${distributed}/${total} distributed</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline" style="padding:7px 12px;font-size:.78rem;" data-edit="${id}">Edit</button>
+          <button class="btn btn-danger" style="padding:7px 12px;font-size:.78rem;" data-del="${id}">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  el.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', () => openEditForm(btn.dataset.edit));
+  });
+  el.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => confirmDeleteSession(btn.dataset.del));
+  });
+}
+
+/* ============================================================
+   EXCEL EXPORT (current session only)
+   ============================================================ */
+function downloadExcel() {
+  try {
+    if (typeof XLSX === 'undefined') {
+      showToast('Excel library not loaded. Check your connection.', 'error');
+      return;
+    }
+    const s = sessionsCache[currentSessionId];
+    const rows = [['S.No', 'Roll Number', 'Student Name', 'Class / Department', 'Book Title', 'Staff Name', 'Entry Date', 'Entry Time']];
+    const sorted = [...currentEntries].sort((a, b) => String(a.rollNumber).localeCompare(String(b.rollNumber)));
+    sorted.forEach((e, i) => {
+      const d = e.timestamp && e.timestamp.toDate ? e.timestamp.toDate() : null;
+      rows.push([
+        i + 1,
+        e.rollNumber,
+        e.studentName || '',
+        e.className || '',
+        e.bookTitle || s.bookTitle,
+        e.staffName || s.staffName,
+        d ? d.toLocaleDateString() : '',
+        d ? d.toLocaleTimeString() : ''
+      ]);
+    });
+    rows.push([]);
+    rows.push(['Total Books', '', '', '', '', '', '', s.totalBooks]);
+    rows.push(['Distributed', '', '', '', '', '', '', s.distributedCount || 0]);
+    rows.push(['Remaining', '', '', '', '', '', '', Math.max(0, (s.totalBooks || 0) - (s.distributedCount || 0))]);
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 6 }, { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 26 }, { wch: 18 }, { wch: 14 }, { wch: 12 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Book Entry');
+    const filename = `${(s.bookTitle || 'Book_Entry').replace(/[^a-z0-9]+/gi, '_')}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    showToast('✓ Excel file downloaded', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('Failed to download Excel. Please try again.', 'error');
+  }
+}
+
+/* ============================================================
+   PWA — service worker + install prompt
+   ============================================================ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch((err) => {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  $('installSectionLabel').style.display = '';
+  $('installRow').style.display = 'flex';
+});
+
+$('installBtn').addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const choice = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  $('installRow').style.display = 'none';
+  $('installSectionLabel').style.display = 'none';
+  if (choice.outcome === 'accepted') {
+    showToast('✓ App installed', 'success');
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  $('installRow').style.display = 'none';
+  $('installSectionLabel').style.display = 'none';
+  deferredInstallPrompt = null;
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(async function init() {
+  await ensureAdminPin();
+  listenDashboard();
+})();
+</script>
+</body>
+</html>
