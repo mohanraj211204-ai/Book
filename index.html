@@ -19,7 +19,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{
   --navy-950:#0F2440;
@@ -370,7 +371,7 @@ input,select{font-family:inherit;}
   <div class="settings-item">
     <div>
       <div class="t">Admin PIN</div>
-      <div class="d">Required for Excel export and settings access</div>
+      <div class="d">Required for PDF export and settings access</div>
     </div>
     <button class="btn btn-outline" id="changePinBtn" style="padding:8px 14px;font-size:.8rem;">Change</button>
   </div>
@@ -450,7 +451,7 @@ input,select{font-family:inherit;}
   </div>
 </div>
 
-<!-- ===== ADMIN PIN SHEET (excel / settings) ===== -->
+<!-- ===== ADMIN PIN SHEET (pdf / settings) ===== -->
 <div class="overlay" id="pinOverlay">
   <div class="sheet" style="max-width:400px;">
     <div class="sheet-handle"></div>
@@ -576,7 +577,7 @@ let currentSessionId = null;
 let currentEntries = [];
 let entriesUnsub = null;
 let adminPinHash = null;
-let pendingAction = null;     // 'excel' | 'settings'
+let pendingAction = null;     // 'pdf' | 'settings'
 let pendingDeleteFn = null;
 
 /* ============================================================
@@ -934,7 +935,7 @@ function renderSessionInfo() {
       <div class="info-bar-track"><div class="info-bar-fill" style="width:${pct}%;"></div></div>
       <div class="info-actions">
         <button class="chip-btn" id="editSessionBtn"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75z"/></svg>Edit</button>
-        <button class="chip-btn" id="excelBtn"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>Download Excel</button>
+        <button class="chip-btn" id="pdfBtn"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>Download PDF</button>
         <button class="chip-btn" id="deleteSessionBtn"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>Delete</button>
       </div>
     </div>
@@ -970,7 +971,7 @@ function renderSessionInfo() {
 
   $('editSessionBtn').addEventListener('click', () => openEditForm(currentSessionId));
   $('deleteSessionBtn').addEventListener('click', () => confirmDeleteSession(currentSessionId));
-  $('excelBtn').addEventListener('click', () => requestAdminPin('excel'));
+  $('pdfBtn').addEventListener('click', () => requestAdminPin('pdf'));
 
   renderRollTable();
   initRollSearch();
@@ -1140,12 +1141,12 @@ $('confirmOk').addEventListener('click', async () => {
 });
 
 /* ============================================================
-   ADMIN PIN GATE (excel export / settings)
+   ADMIN PIN GATE (pdf export / settings)
    ============================================================ */
 function requestAdminPin(action) {
   pendingAction = action;
-  $('pinSub').textContent = action === 'excel'
-    ? 'Enter the admin PIN to export this session as Excel.'
+  $('pinSub').textContent = action === 'pdf'
+    ? 'Enter the admin PIN to export this session as PDF.'
     : 'Enter the admin PIN to access settings.';
   $('pinInput').value = '';
   $('pinErr').classList.remove('show');
@@ -1160,8 +1161,8 @@ async function verifyAdminPin() {
   const hash = await sha256(entered);
   if (hash === adminPinHash) {
     closeSheet('pinOverlay');
-    if (pendingAction === 'excel') {
-      downloadExcel();
+    if (pendingAction === 'pdf') {
+      downloadPDF();
     } else if (pendingAction === 'settings') {
       showScreen('settings');
       setCrumb([{ label: 'Dashboard', onClick: goToDashboard }, { label: 'Settings' }]);
@@ -1256,45 +1257,181 @@ function renderSettingsList() {
 }
 
 /* ============================================================
-   EXCEL EXPORT (current session only)
+   PDF EXPORT (current session only — full roster, print-ready A4)
    ============================================================ */
-function downloadExcel() {
+function downloadPDF() {
   try {
-    if (typeof XLSX === 'undefined') {
-      showToast('Excel library not loaded. Check your connection.', 'error');
+    const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+    if (!jsPDFCtor) {
+      showToast('PDF library not loaded. Check your connection.', 'error');
       return;
     }
     const s = sessionsCache[currentSessionId];
-    const rows = [['S.No', 'Roll Number', 'Student Name', 'Class / Department', 'Book Title', 'Staff Name', 'Entry Date', 'Entry Time']];
-    const sorted = [...currentEntries].sort((a, b) => String(a.rollNumber).localeCompare(String(b.rollNumber)));
-    sorted.forEach((e, i) => {
-      const d = e.timestamp && e.timestamp.toDate ? e.timestamp.toDate() : null;
-      rows.push([
-        i + 1,
-        e.rollNumber,
-        e.studentName || '',
-        e.className || '',
-        e.bookTitle || s.bookTitle,
-        e.staffName || s.staffName,
-        d ? d.toLocaleDateString() : '',
-        d ? d.toLocaleTimeString() : ''
-      ]);
-    });
-    rows.push([]);
-    rows.push(['Total Books', '', '', '', '', '', '', s.totalBooks]);
-    rows.push(['Distributed', '', '', '', '', '', '', s.distributedCount || 0]);
-    rows.push(['Remaining', '', '', '', '', '', '', Math.max(0, (s.totalBooks || 0) - (s.distributedCount || 0))]);
+    if (!s) {
+      showToast('Session data not available.', 'error');
+      return;
+    }
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{ wch: 6 }, { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 26 }, { wch: 18 }, { wch: 14 }, { wch: 12 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Book Entry');
-    const filename = `${(s.bookTitle || 'Book_Entry').replace(/[^a-z0-9]+/gi, '_')}.xlsx`;
-    XLSX.writeFile(wb, filename);
-    showToast('✓ Excel file downloaded', 'success');
+    // Read the LATEST Firebase-backed selection state (currentEntries is kept
+    // live via the onSnapshot listener attached in listenEntries()).
+    const checkedSet = new Set(currentEntries.map(e => String(e.rollNumber)));
+    const entryByRoll = {};
+    currentEntries.forEach(e => { entryByRoll[String(e.rollNumber)] = e; });
+
+    const totalStudents = ROLL_NUMBERS.length;
+    const totalBooks = s.totalBooks || 0;
+    const received = ROLL_NUMBERS.reduce((n, rn) => n + (checkedSet.has(String(rn)) ? 1 : 0), 0);
+    const notReceived = totalStudents - received;
+
+    const doc = new jsPDFCtor({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 40;
+
+    // ---- Header (drawn once, table starts below it) ----
+    let y = margin;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(15, 36, 64);
+    doc.text('BISHOP HEBER COLLEGE', pageWidth / 2, y, { align: 'center' });
+    y += 20;
+    doc.setFontSize(12);
+    doc.text('BOOK ENTRY RECORD', pageWidth / 2, y, { align: 'center' });
+    y += 10;
+    doc.setDrawColor(200, 168, 76);
+    doc.setLineWidth(1.2);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 22;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(31, 42, 55);
+
+    const infoLeft = [
+      ['Book / Subject:', s.bookTitle || '—'],
+      ['Staff Name:', s.staffName || '—'],
+      ['Total Books:', String(totalBooks)]
+    ];
+    const infoRight = [
+      ['Total Students:', String(totalStudents)],
+      ['Received:', String(received)],
+      ['Not Received:', String(notReceived)]
+    ];
+    const colGap = pageWidth / 2;
+    let yLeft = y, yRight = y;
+    infoLeft.forEach(([label, val]) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, margin, yLeft);
+      doc.setFont('helvetica', 'normal');
+      doc.text(val, margin + 95, yLeft);
+      yLeft += 16;
+    });
+    infoRight.forEach(([label, val]) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, colGap, yRight);
+      doc.setFont('helvetica', 'normal');
+      doc.text(val, colGap + 95, yRight);
+      yRight += 16;
+    });
+    y = Math.max(yLeft, yRight) + 10;
+
+    // ---- Complete student roster table ----
+    const sortedRolls = [...ROLL_NUMBERS].sort((a, b) => a - b);
+    const body = sortedRolls.map((rn, idx) => {
+      const rollStr = String(rn);
+      const isReceived = checkedSet.has(rollStr);
+      const entry = entryByRoll[rollStr];
+      return [
+        idx + 1,
+        rollStr,
+        (entry && entry.studentName) || '',
+        (entry && entry.className) || '',
+        isReceived ? 'Received' : 'Not Received'
+      ];
+    });
+
+    doc.autoTable({
+      head: [['S.No', 'Roll Number', 'Student Name', 'Class / Department', 'Status']],
+      body: body,
+      startY: y,
+      margin: { left: margin, right: margin, bottom: 60 },
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 5, lineColor: [228, 225, 216], lineWidth: 0.5 },
+      headStyles: { fillColor: [27, 58, 92], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'left' },
+      alternateRowStyles: { fillColor: [250, 250, 247] },
+      columnStyles: {
+        0: { cellWidth: 40, halign: 'center' },
+        1: { cellWidth: 90 },
+        2: { cellWidth: 140 },
+        3: { cellWidth: 110 },
+        4: { cellWidth: 90, fontStyle: 'bold' }
+      },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 4) {
+          if (data.cell.raw === 'Received') {
+            data.cell.styles.textColor = [31, 122, 77];
+          } else {
+            data.cell.styles.textColor = [178, 58, 46];
+          }
+        }
+      },
+      didDrawPage: () => {
+        // Footer on every page
+        const pageH = doc.internal.pageSize.getHeight();
+        const footY = pageH - 40;
+        doc.setDrawColor(228, 225, 216);
+        doc.setLineWidth(0.5);
+        doc.line(margin, footY - 14, pageWidth - margin, footY - 14);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(91, 102, 114);
+        const now = new Date();
+        doc.text(`Generated Date: ${now.toLocaleDateString()}`, margin, footY);
+        doc.text(`Generated Time: ${now.toLocaleTimeString()}`, margin, footY + 12);
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.text(`Page ${doc.internal.getCurrentPageInfo().pageNumber} of ${pageCount}`, pageWidth - margin, footY, { align: 'right' });
+      }
+    });
+
+    // ---- Signature block after the table, on the last page ----
+    const finalY = doc.lastAutoTable.finalY + 40;
+    const pageH = doc.internal.pageSize.getHeight();
+    let sigY = finalY;
+    if (sigY > pageH - 100) {
+      doc.addPage();
+      sigY = margin + 20;
+    }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(31, 42, 55);
+    doc.line(margin, sigY, margin + 160, sigY);
+    doc.text('Staff Signature', margin, sigY + 14);
+    doc.line(pageWidth - margin - 160, sigY, pageWidth - margin, sigY);
+    doc.text('Authorized Signature', pageWidth - margin - 160, sigY + 14);
+
+    // jsPDF-autotable only fires didDrawPage for pages it renders; if we
+    // added a fresh page for signatures, stamp its footer too.
+    if (sigY === margin + 20) {
+      const footY = pageH - 40;
+      doc.setDrawColor(228, 225, 216);
+      doc.setLineWidth(0.5);
+      doc.line(margin, footY - 14, pageWidth - margin, footY - 14);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(91, 102, 114);
+      const now = new Date();
+      doc.text(`Generated Date: ${now.toLocaleDateString()}`, margin, footY);
+      doc.text(`Generated Time: ${now.toLocaleTimeString()}`, margin, footY + 12);
+    }
+
+    const safeTitle = (s.bookTitle || 'Book').replace(/[^a-z0-9]+/gi, '_');
+    const safeStaff = (s.staffName || '').replace(/[^a-z0-9]+/gi, '_');
+    const filename = safeStaff
+      ? `${safeTitle}_${safeStaff}_Book_Entry.pdf`
+      : `${safeTitle}_Book_Entry_Record.pdf`;
+    doc.save(filename);
+    showToast('✓ PDF file downloaded', 'success');
   } catch (err) {
     console.error(err);
-    showToast('Failed to download Excel. Please try again.', 'error');
+    showToast('Failed to download PDF. Please try again.', 'error');
   }
 }
 
